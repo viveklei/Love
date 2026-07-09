@@ -1,13 +1,27 @@
 /**
- * Aura Match - The Elegant Love Calculator
- * Core Logic, Dashboard, Passcode Gate, and localStorage Persistence
+ * Aura Match — The Elegant Love Calculator
+ * Global data storage via Firebase Firestore
  */
+
+// ─── Firebase Setup ───────────────────────────────────────────────────────────
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyB3AtA7D-hmKF2PMc3UsWiAKJmw6kx0fXw",
+  authDomain:        "love-calculator-1bde2.firebaseapp.com",
+  projectId:         "love-calculator-1bde2",
+  storageBucket:     "love-calculator-1bde2.firebasestorage.app",
+  messagingSenderId: "626832013829",
+  appId:             "1:626832013829:web:f8a1222e03996bfdb87a6c",
+  measurementId:     "G-G3PEWPER5Y"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const COLLECTION = 'matches';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PASSCODE     = '425680';
-const STORAGE_KEY  = 'aura_match_history';
-const MAX_HISTORY  = 50;
+const PASSCODE = '425680';
 
 const LOADING_MESSAGES = [
   "Aligning heartbeats...",
@@ -47,9 +61,6 @@ const VERDICTS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Deterministic love score: same pair of names → same result.
- */
 function getDeterministicLoveScore(name1, name2) {
   const sortedNames = [name1.trim().toLowerCase(), name2.trim().toLowerCase()].sort().join('&');
   let hash = 0;
@@ -71,32 +82,65 @@ function getAffinityClass(score) {
   return 'affinity-max';
 }
 
-// ─── LocalStorage ─────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
-function loadHistory() {
+// ─── Firestore: Save a match ──────────────────────────────────────────────────
+
+async function addRecord(nameOne, nameTwo, score, verdict) {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-  } catch {
+    await db.collection(COLLECTION).add({
+      nameOne,
+      nameTwo,
+      score,
+      verdict,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (err) {
+    console.error('Firestore write error:', err);
+  }
+}
+
+// ─── Firestore: Fetch all matches ─────────────────────────────────────────────
+
+async function fetchHistory() {
+  try {
+    const snapshot = await db.collection(COLLECTION)
+      .orderBy('timestamp', 'desc')
+      .limit(100)
+      .get();
+
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id:        doc.id,
+        nameOne:   data.nameOne   || '',
+        nameTwo:   data.nameTwo   || '',
+        score:     data.score     || 0,
+        verdict:   data.verdict   || '',
+        timestamp: data.timestamp ? data.timestamp.toDate().toISOString() : new Date().toISOString()
+      };
+    });
+  } catch (err) {
+    console.error('Firestore read error:', err);
     return [];
   }
 }
 
-function saveHistory(history) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-}
+// ─── Firestore: Clear all matches ─────────────────────────────────────────────
 
-function addRecord(nameOne, nameTwo, score, verdict) {
-  const history = loadHistory();
-  history.unshift({
-    nameOne,
-    nameTwo,
-    score,
-    verdict,
-    timestamp: new Date().toISOString()
-  });
-  // Keep only most recent MAX_HISTORY entries
-  if (history.length > MAX_HISTORY) history.splice(MAX_HISTORY);
-  saveHistory(history);
+async function deleteAllRecords() {
+  try {
+    const snapshot = await db.collection(COLLECTION).get();
+    const batch    = db.batch();
+    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+  } catch (err) {
+    console.error('Firestore delete error:', err);
+  }
 }
 
 // ─── Panel Switching ──────────────────────────────────────────────────────────
@@ -104,14 +148,18 @@ function addRecord(nameOne, nameTwo, score, verdict) {
 function switchPanel(fromId, toId) {
   const fromEl = document.getElementById(fromId);
   const toEl   = document.getElementById(toId);
-
   fromEl.classList.remove('active');
   setTimeout(() => {
     fromEl.style.display = 'none';
     toEl.style.display   = 'block';
-    toEl.offsetHeight;            // force reflow
+    toEl.offsetHeight;
     toEl.classList.add('active');
   }, 400);
+}
+
+function getActivePanel() {
+  const panels = ['input-view', 'result-view', 'loading-view', 'dashboard-view'];
+  return panels.find(id => document.getElementById(id).classList.contains('active')) || 'input-view';
 }
 
 // ─── Calculator Flow ──────────────────────────────────────────────────────────
@@ -126,7 +174,7 @@ function calculateLove(event) {
   switchPanel('input-view', 'loading-view');
 
   let msgIdx = 0;
-  const loadingTextEl  = document.getElementById('loading-text');
+  const loadingTextEl = document.getElementById('loading-text');
   loadingTextEl.textContent = LOADING_MESSAGES[0];
 
   const msgInterval = setInterval(() => {
@@ -136,13 +184,13 @@ function calculateLove(event) {
     }
   }, 600);
 
-  setTimeout(() => {
+  setTimeout(async () => {
     clearInterval(msgInterval);
     const score   = getDeterministicLoveScore(nameOne, nameTwo);
     const verdict = getVerdict(score);
 
-    // Persist to localStorage
-    addRecord(nameOne, nameTwo, score, verdict.title);
+    // Save to Firestore (global)
+    await addRecord(nameOne, nameTwo, score, verdict.title);
 
     displayResults(nameOne, nameTwo, score, verdict);
     switchPanel('loading-view', 'result-view');
@@ -155,20 +203,19 @@ function displayResults(nameOne, nameTwo, score, verdict) {
   document.getElementById('verdict-title').textContent = verdict.title;
   document.getElementById('verdict-desc').textContent  = verdict.desc;
 
-  const circumference  = 2 * Math.PI * 50; // 314.16
+  const circumference  = 2 * Math.PI * 50;
   const progressCircle = document.getElementById('gauge-progress');
   const percentageEl   = document.getElementById('percentage-val');
 
   progressCircle.style.strokeDashoffset = circumference;
   percentageEl.textContent = '0%';
 
-  const duration   = 1500;
-  const totalFrames = (duration / 1000) * 60;
+  const totalFrames = (1500 / 1000) * 60;
   let frame = 0;
 
   const tick = setInterval(() => {
     frame++;
-    const eased  = 1 - Math.pow(1 - frame / totalFrames, 3);
+    const eased   = 1 - Math.pow(1 - frame / totalFrames, 3);
     const current = Math.round(eased * score);
     percentageEl.textContent = `${current}%`;
     progressCircle.style.strokeDashoffset = circumference - (eased * score / 100) * circumference;
@@ -184,33 +231,35 @@ function displayResults(nameOne, nameTwo, score, verdict) {
 function resetCalculator() {
   document.getElementById('name-one').value = '';
   document.getElementById('name-two').value = '';
-
-  // determine the currently active panel to switch from
-  const panels = ['result-view', 'dashboard-view', 'loading-view'];
-  const active  = panels.find(id => document.getElementById(id).classList.contains('active'));
-  switchPanel(active || 'result-view', 'input-view');
+  switchPanel(getActivePanel(), 'input-view');
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 function showDashboard() {
-  renderDashboard();
-
-  // Find currently active panel
-  const panels  = ['input-view', 'result-view', 'loading-view'];
-  const current = panels.find(id => document.getElementById(id).classList.contains('active')) || 'input-view';
+  const current = getActivePanel();
   switchPanel(current, 'dashboard-view');
+  renderDashboard();
 }
 
-function renderDashboard() {
-  const history  = loadHistory();
+async function renderDashboard() {
   const totalEl  = document.getElementById('stat-total');
   const avgEl    = document.getElementById('stat-avg');
   const bodyEl   = document.getElementById('history-body');
+  const loadEl   = document.getElementById('db-loading');
+
+  // Show loading state
+  bodyEl.innerHTML = '';
+  loadEl.style.display = 'flex';
+  totalEl.textContent  = '...';
+  avgEl.textContent    = '...';
+
+  const history = await fetchHistory();
+
+  loadEl.style.display = 'none';
 
   // Stats
   totalEl.textContent = history.length;
-
   if (history.length > 0) {
     const avg = Math.round(history.reduce((sum, r) => sum + r.score, 0) / history.length);
     avgEl.textContent = `${avg}%`;
@@ -218,26 +267,24 @@ function renderDashboard() {
     avgEl.textContent = '—';
   }
 
-  // Table rows
+  // Empty state
   if (history.length === 0) {
     bodyEl.innerHTML = `
-      <tr>
-        <td colspan="3">
-          <div class="empty-state">
-            <span class="empty-state-icon">💫</span>
-            No matches recorded yet. Run your first calculation!
-          </div>
-        </td>
-      </tr>`;
+      <tr><td colspan="3">
+        <div class="empty-state">
+          <span class="empty-state-icon">💫</span>
+          No matches recorded yet. Run the first calculation!
+        </div>
+      </td></tr>`;
     return;
   }
 
+  // Render rows
   bodyEl.innerHTML = history.map(record => {
     const badgeClass = getAffinityClass(record.score);
     const date       = new Date(record.timestamp).toLocaleDateString('en-US', {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-
     return `
       <tr>
         <td>
@@ -247,25 +294,18 @@ function renderDashboard() {
           <br>
           <span style="font-size:0.72rem;color:var(--text-muted)">${date}</span>
         </td>
-        <td>
-          <span class="affinity-badge ${badgeClass}">${record.score}%</span>
-        </td>
-        <td>
-          <span class="verdict-chip">${escapeHtml(record.verdict)}</span>
-        </td>
+        <td><span class="affinity-badge ${badgeClass}">${record.score}%</span></td>
+        <td><span class="verdict-chip">${escapeHtml(record.verdict)}</span></td>
       </tr>`;
   }).join('');
 }
 
-function clearHistory() {
-  localStorage.removeItem(STORAGE_KEY);
+async function clearHistory() {
+  const btn = document.querySelector('.btn-clear span');
+  btn.textContent = 'Clearing...';
+  await deleteAllRecords();
+  btn.textContent = 'Clear History';
   renderDashboard();
-}
-
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
 }
 
 // ─── Passcode Modal ───────────────────────────────────────────────────────────
@@ -280,7 +320,6 @@ function openPasscodeModal() {
 }
 
 function closePasscodeModal(e) {
-  // Close only if clicking the backdrop (not the card itself)
   if (e && e.target !== document.getElementById('passcode-overlay')) return;
   _dismissModal();
 }
@@ -296,11 +335,7 @@ function pinPress(digit) {
   if (pinBuffer.length >= 6) return;
   pinBuffer += digit;
   updatePinDots();
-
-  if (pinBuffer.length === 6) {
-    // Small delay so the last dot fills before checking
-    setTimeout(checkPasscode, 150);
-  }
+  if (pinBuffer.length === 6) setTimeout(checkPasscode, 150);
 }
 
 function pinDelete() {
@@ -325,17 +360,16 @@ function updatePinDots() {
 
 function checkPasscode() {
   if (pinBuffer === PASSCODE) {
-    // Correct — open dashboard
     _dismissModal();
     showDashboard();
   } else {
-    // Wrong — shake and show error
     const display = document.getElementById('pin-display');
-    const dots    = display.querySelectorAll('.pin-dot');
-    dots.forEach(d => { d.classList.remove('filled'); d.classList.add('error'); });
+    display.querySelectorAll('.pin-dot').forEach(d => {
+      d.classList.remove('filled');
+      d.classList.add('error');
+    });
     display.classList.add('shake');
     document.getElementById('pin-error').textContent = 'Incorrect passcode';
-
     setTimeout(() => {
       display.classList.remove('shake');
       pinBuffer = '';
@@ -344,12 +378,11 @@ function checkPasscode() {
   }
 }
 
-// Keyboard support for PIN modal
+// Keyboard support
 document.addEventListener('keydown', (e) => {
   const overlay = document.getElementById('passcode-overlay');
   if (!overlay.classList.contains('open')) return;
-
-  if (e.key >= '0' && e.key <= '9') { pinPress(e.key); }
-  else if (e.key === 'Backspace')    { pinDelete(); }
-  else if (e.key === 'Escape')       { _dismissModal(); }
+  if (e.key >= '0' && e.key <= '9') pinPress(e.key);
+  else if (e.key === 'Backspace')    pinDelete();
+  else if (e.key === 'Escape')       _dismissModal();
 });
