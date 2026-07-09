@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Calculate the compatibility and love percentage between you and your partner with our modern, elegant Love Calculator.">
+  <title>Aura Match - The Elegant Love Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Decorative background orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <!-- ── Floating Dashboard Button (top-right) ── -->
+  <button id="fab-dashboard" class="fab" onclick="openPasscodeModal()" title="Admin Dashboard">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.9"/>
+      <rect x="14" y="3" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.7"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.7"/>
+      <rect x="14" y="14" width="7" height="7" rx="1.5" fill="currentColor" opacity="0.5"/>
+    </svg>
+  </button>
+
+  <!-- ── Passcode Modal Overlay ── -->
+  <div id="passcode-overlay" class="modal-overlay" onclick="closePasscodeModal(event)">
+    <div class="modal-card">
+      <div class="modal-icon">🔐</div>
+      <h3 class="modal-title">Admin Access</h3>
+      <p class="modal-subtitle">Enter passcode to view dashboard</p>
+
+      <!-- Digit display -->
+      <div class="pin-display" id="pin-display">
+        <span class="pin-dot" id="d0"></span>
+        <span class="pin-dot" id="d1"></span>
+        <span class="pin-dot" id="d2"></span>
+        <span class="pin-dot" id="d3"></span>
+        <span class="pin-dot" id="d4"></span>
+        <span class="pin-dot" id="d5"></span>
+      </div>
+      <p class="pin-error" id="pin-error"></p>
+
+      <!-- Number pad -->
+      <div class="numpad">
+        <button class="numpad-key" onclick="pinPress('1')">1</button>
+        <button class="numpad-key" onclick="pinPress('2')">2</button>
+        <button class="numpad-key" onclick="pinPress('3')">3</button>
+        <button class="numpad-key" onclick="pinPress('4')">4</button>
+        <button class="numpad-key" onclick="pinPress('5')">5</button>
+        <button class="numpad-key" onclick="pinPress('6')">6</button>
+        <button class="numpad-key" onclick="pinPress('7')">7</button>
+        <button class="numpad-key" onclick="pinPress('8')">8</button>
+        <button class="numpad-key" onclick="pinPress('9')">9</button>
+        <button class="numpad-key numpad-clear" onclick="pinClear()">✕</button>
+        <button class="numpad-key" onclick="pinPress('0')">0</button>
+        <button class="numpad-key numpad-del" onclick="pinDelete()">⌫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main App ── -->
+  <div class="container">
+    <header>
+      <h1>Aura Match</h1>
+      <p class="subtitle">Discover the harmonic resonance between two souls</p>
+    </header>
+
+    <main class="calculator-card">
+      <div class="card-glow"></div>
+
+      <!-- Input State -->
+      <div id="input-view" class="view-panel active">
+        <form id="love-form" onsubmit="calculateLove(event)">
+          <div class="input-group">
+            <label for="name-one">Your Name</label>
+            <input type="text" id="name-one" required placeholder="Enter your name" autocomplete="off">
+          </div>
+
+          <div class="heart-divider">
+            <svg class="heart-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
+            </svg>
+          </div>
+
+          <div class="input-group">
+            <label for="name-two">Their Name</label>
+            <input type="text" id="name-two" required placeholder="Enter their name" autocomplete="off">
+          </div>
+
+          <button type="submit" class="btn-calculate" id="btn-submit">
+            <span>Calculate Resonance</span>
+            <div class="btn-glow"></div>
+          </button>
+        </form>
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading-view" class="view-panel">
+        <div class="loader-container">
+          <div class="pulse-heart">
+            <svg class="heart-icon pulsing" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#grad1)"/>
+              <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#ff3366;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#ff99cc;stop-opacity:1" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <p id="loading-text">Aligning heartbeats...</p>
+        </div>
+      </div>
+
+      <!-- Results State -->
+      <div id="result-view" class="view-panel">
+        <div class="result-header">
+          <span class="names-display"><span id="res-name-one">You</span> &amp; <span id="res-name-two">Them</span></span>
+        </div>
+
+        <div class="gauge-container">
+          <svg class="gauge-svg" viewBox="0 0 120 120">
+            <defs>
+              <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ff3366;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#8a2be2;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <circle class="gauge-track" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill-glow" cx="60" cy="60" r="50" />
+            <circle class="gauge-fill" cx="60" cy="60" r="50" id="gauge-progress" />
+          </svg>
+          <div class="gauge-center">
+            <span id="percentage-val">0%</span>
+          </div>
+        </div>
+
+        <div class="analysis-box">
+          <h2 id="verdict-title">Soulmates</h2>
+          <p id="verdict-desc">Your energies flow in perfect harmony.</p>
+        </div>
+
+        <button onclick="resetCalculator()" class="btn-retry">
+          <span>Try Another Connection</span>
+        </button>
+      </div>
+
+      <!-- Dashboard State -->
+      <div id="dashboard-view" class="view-panel">
+        <div class="dashboard-header">
+          <h2>Affinity Analytics</h2>
+          <p>Local match tracking &amp; statistics</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Total Queries</span>
+            <span class="stat-value" id="stat-total">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Average Affinity</span>
+            <span class="stat-value" id="stat-avg">—</span>
+          </div>
+        </div>
+
+        <div class="history-section">
+          <h3>Recent Resonance Records</h3>
+          <div class="table-wrapper">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Names</th>
+                  <th>Affinity</th>
+                  <th>Verdict</th>
+                </tr>
+              </thead>
+              <tbody id="history-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dashboard-actions">
+          <button onclick="clearHistory()" class="btn-clear"><span>Clear History</span></button>
+          <button onclick="resetCalculator()" class="btn-retry"><span>Back</span></button>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 Aura Match. Beautifully calculated affinity.</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
