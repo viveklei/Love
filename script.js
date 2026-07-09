@@ -386,3 +386,182 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'Backspace')    pinDelete();
   else if (e.key === 'Escape')       _dismissModal();
 });
+
+// ─── Verdict Icons ────────────────────────────────────────────────────────────
+
+const VERDICT_ICONS = {
+  'Distant Stars':   '⭐',
+  'Quiet Echoes':    '🌙',
+  'Harmonic Glow':   '🌸',
+  'Soul Resonance':  '💖',
+  'Celestial Unity': '✨'
+};
+
+// ─── Particle Canvas System ───────────────────────────────────────────────────
+
+const canvas  = document.getElementById('particle-canvas');
+const ctx     = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function randomBetween(a, b) { return a + Math.random() * (b - a); }
+
+class Particle {
+  constructor() { this.reset(true); }
+
+  reset(initial = false) {
+    this.x      = randomBetween(0, canvas.width);
+    this.y      = initial ? randomBetween(0, canvas.height) : canvas.height + 20;
+    this.size   = randomBetween(8, 20);
+    this.speedY = randomBetween(0.3, 1.1);
+    this.speedX = randomBetween(-0.3, 0.3);
+    this.opacity= randomBetween(0.05, 0.25);
+    this.angle  = randomBetween(0, Math.PI * 2);
+    this.spin   = randomBetween(-0.02, 0.02);
+    this.hue    = Math.random() > 0.5 ? '#ff3366' : '#c084fc';
+  }
+
+  update() {
+    this.y     -= this.speedY;
+    this.x     += this.speedX;
+    this.angle += this.spin;
+    if (this.y < -30) this.reset();
+  }
+
+  draw() {
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.fillStyle = this.hue;
+    // Draw mini heart
+    const s = this.size * 0.04;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-this.size/2, -this.size/3,  -this.size, this.size/4,   0, this.size * 0.75);
+    ctx.bezierCurveTo( this.size,   this.size/4,    this.size/2, -this.size/3, 0, 0);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Create initial particles
+for (let i = 0; i < 40; i++) particles.push(new Particle());
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animateParticles);
+}
+
+animateParticles();
+
+// ─── Celebration Burst ────────────────────────────────────────────────────────
+
+function triggerBurst(score) {
+  const container = document.getElementById('burst-container');
+  container.innerHTML = '';
+
+  const count   = score >= 80 ? 40 : score >= 50 ? 24 : 14;
+  const emojis  = score >= 80 ? ['💖','✨','💫','🌸','💕'] : ['💛','⭐','🌟','✨'];
+  const centerX = window.innerWidth  / 2;
+  const centerY = window.innerHeight / 2;
+
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+
+    const angle   = (i / count) * Math.PI * 2 + randomBetween(-0.3, 0.3);
+    const dist    = randomBetween(80, 250);
+    const dx      = Math.cos(angle) * dist;
+    const dy      = Math.sin(angle) * dist;
+    const size    = randomBetween(16, 32);
+    const delay   = randomBetween(0, 200);
+
+    Object.assign(el.style, {
+      position:     'absolute',
+      left:         centerX + 'px',
+      top:          centerY + 'px',
+      fontSize:     size + 'px',
+      opacity:      '0',
+      transform:    'translate(-50%,-50%) scale(0)',
+      transition:   `all 0.7s cubic-bezier(.34,1.56,.64,1) ${delay}ms`,
+      pointerEvents:'none',
+      userSelect:   'none',
+      zIndex:       9999
+    });
+
+    container.appendChild(el);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.opacity   = '1';
+        el.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1) rotate(${randomBetween(-30,30)}deg)`;
+      });
+    });
+
+    setTimeout(() => {
+      el.style.transition = 'all 0.5s ease';
+      el.style.opacity    = '0';
+      el.style.transform  += ' scale(0)';
+      setTimeout(() => el.remove(), 600);
+    }, 700 + delay + 400);
+  }
+}
+
+// ─── Patch displayResults to use verdict icons & burst ────────────────────────
+
+const _origDisplayResults = displayResults;
+
+// Override displayResults to add icon + burst
+window.displayResults = function(nameOne, nameTwo, score, verdict) {
+  // Update verdict icon
+  const iconEl = document.getElementById('verdict-icon');
+  if (iconEl) iconEl.textContent = VERDICT_ICONS[verdict.title] || '💫';
+
+  // Original gauge + counter logic
+  document.getElementById('res-name-one').textContent  = nameOne;
+  document.getElementById('res-name-two').textContent  = nameTwo;
+  document.getElementById('verdict-title').textContent = verdict.title;
+  document.getElementById('verdict-desc').textContent  = verdict.desc;
+
+  const circumference  = 2 * Math.PI * 50;
+  const progressCircle = document.getElementById('gauge-progress');
+  const glowCircle     = document.querySelector('.gauge-fill-glow');
+  const percentageEl   = document.getElementById('percentage-val');
+
+  progressCircle.style.strokeDashoffset = circumference;
+  if (glowCircle) glowCircle.style.strokeDashoffset = circumference;
+  percentageEl.textContent = '0%';
+
+  const totalFrames = (1500 / 1000) * 60;
+  let frame = 0;
+
+  const tick = setInterval(() => {
+    frame++;
+    const eased   = 1 - Math.pow(1 - frame / totalFrames, 3);
+    const current = Math.round(eased * score);
+    percentageEl.textContent = `${current}%`;
+
+    const offset = circumference - (eased * score / 100) * circumference;
+    progressCircle.style.strokeDashoffset = offset;
+    if (glowCircle) glowCircle.style.strokeDashoffset = offset;
+
+    if (frame >= totalFrames) {
+      clearInterval(tick);
+      percentageEl.textContent = `${score}%`;
+      progressCircle.style.strokeDashoffset = circumference - (score / 100) * circumference;
+      if (glowCircle) glowCircle.style.strokeDashoffset = circumference - (score / 100) * circumference;
+      // Trigger celebration burst
+      setTimeout(() => triggerBurst(score), 200);
+    }
+  }, 1000 / 60);
+};
+
