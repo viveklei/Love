@@ -1031,6 +1031,31 @@ footer p {
   letter-spacing: 0.05em;
 }
 
+.footer-link {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 600;
+  text-decoration: none;
+  position: relative;
+  transition: opacity 0.2s ease;
+}
+
+.footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--grad);
+  transition: width 0.3s ease;
+}
+
+.footer-link:hover::after { width: 100%; }
+.footer-link:hover { opacity: 0.8; }
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 480px) {
   .calculator-card { padding: 32px 20px; }
