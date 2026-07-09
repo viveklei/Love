@@ -1038,4 +1038,335 @@ footer p {
   .stats-grid      { grid-template-columns: 1fr 1fr; }
   .history-table th,
   .history-table td { padding: 10px 10px; }
+  .share-buttons   { flex-direction: column; }
 }
+
+/* ── Share & Earn Button ─────────────────────────────────────────── */
+.btn-share-earn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(255,180,0,0.12) 0%, rgba(255,100,0,0.1) 100%);
+  border: 1px solid rgba(255,180,0,0.35);
+  border-radius: 16px;
+  padding: 14px 18px;
+  cursor: pointer;
+  color: #fff;
+  font-family: inherit;
+  margin-top: 12px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  animation: earnPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes earnPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,180,0,0.2); }
+  50%      { box-shadow: 0 0 0 8px rgba(255,180,0,0); }
+}
+
+.btn-share-earn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,200,0,0.08), transparent);
+  transform: translateX(-100%);
+}
+
+.btn-share-earn:hover::before {
+  animation: shinePass 0.6s ease forwards;
+}
+
+.btn-share-earn:hover {
+  background: linear-gradient(135deg, rgba(255,180,0,0.2) 0%, rgba(255,100,0,0.16) 100%);
+  border-color: rgba(255,200,0,0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255,180,0,0.2);
+}
+
+.share-earn-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.share-earn-icon {
+  font-size: 1.6rem;
+  animation: giftWiggle 2s ease-in-out infinite;
+}
+
+@keyframes giftWiggle {
+  0%,100% { transform: rotate(0deg) scale(1); }
+  25%      { transform: rotate(-8deg) scale(1.1); }
+  75%      { transform: rotate(8deg) scale(1.1); }
+}
+
+.share-earn-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.share-earn-text strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffd060;
+  letter-spacing: 0.01em;
+}
+
+.share-earn-text small {
+  font-size: 0.75rem;
+  color: rgba(255,220,100,0.65);
+  font-weight: 300;
+}
+
+.share-earn-arrow {
+  font-size: 1.2rem;
+  color: #ffd060;
+  transition: transform 0.3s ease;
+}
+
+.btn-share-earn:hover .share-earn-arrow { transform: translateX(4px); }
+
+/* ── Share Modal ─────────────────────────────────────────────────── */
+.share-modal-card {
+  width: 360px !important;
+  max-width: 95vw;
+  gap: 0 !important;
+}
+
+.share-header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.share-trophy {
+  font-size: 2.8rem;
+  margin-bottom: 8px;
+  display: block;
+  animation: trophydance 1.5s ease-in-out infinite;
+}
+
+@keyframes trophydance {
+  0%,100% { transform: translateY(0) rotate(0deg); }
+  30%      { transform: translateY(-6px) rotate(-5deg); }
+  70%      { transform: translateY(-6px) rotate(5deg); }
+}
+
+.share-header h3 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffd060, #ff9900);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+
+.share-header p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 300;
+  line-height: 1.5;
+}
+
+.share-header p strong { color: #ffd060; font-weight: 700; }
+
+/* Progress bar */
+.share-progress-wrap {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.share-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--white);
+}
+
+#share-pct-text { color: #ffd060; }
+
+.share-progress-bar {
+  height: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.share-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff9900, #ffd060, #ff9900);
+  background-size: 200% 100%;
+  border-radius: 10px;
+  transition: width 0.8s cubic-bezier(.34,1.56,.64,1);
+  animation: progressShimmer 2s linear infinite;
+}
+
+@keyframes progressShimmer {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.share-milestones {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.milestone {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.milestone.reached {
+  color: #ffd060;
+  transform: scale(1.15);
+}
+
+/* Share action buttons */
+.share-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-whatsapp {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  border: none;
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-whatsapp svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.btn-whatsapp:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37,211,102,0.35);
+}
+
+.btn-copy-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 13px 14px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--white);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-copy-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.btn-copy-link:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.25);
+  transform: translateY(-2px);
+}
+
+.btn-copy-link.copied {
+  border-color: #25d366;
+  color: #25d366;
+}
+
+/* Referral code box */
+.share-ref-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,200,0,0.06);
+  border: 1px solid rgba(255,200,0,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.share-ref-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.share-ref-code {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #ffd060;
+  letter-spacing: 0.15em;
+  font-family: monospace;
+}
+
+/* Disclaimer */
+.share-disclaimer {
+  font-size: 0.73rem;
+  color: rgba(255,255,255,0.25);
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  font-weight: 300;
+}
+
+/* Close button */
+.share-close-btn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 11px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-close-btn:hover {
+  background: rgba(255,255,255,0.04);
+  color: var(--white);
+}
+
+/* Dashboard share tracking table */
+.share-tracking-section {
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
+
+.share-tracking-section h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+

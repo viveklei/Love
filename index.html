@@ -61,6 +61,54 @@
     </div>
   </div>
 
+  <!-- ── Share & Earn Modal ── -->
+  <div id="share-overlay" class="modal-overlay" onclick="closeShareModal(event)">
+    <div class="modal-card share-modal-card">
+      <div class="share-header">
+        <div class="share-trophy">🏆</div>
+        <h3>Earn ₹100 Paytm Cash!</h3>
+        <p>Share your love result with <strong>10 friends</strong> to unlock your reward</p>
+      </div>
+
+      <!-- Progress -->
+      <div class="share-progress-wrap">
+        <div class="share-progress-labels">
+          <span id="share-count-text">0 / 10 friends opened</span>
+          <span id="share-pct-text">0%</span>
+        </div>
+        <div class="share-progress-bar">
+          <div class="share-progress-fill" id="share-progress-fill"></div>
+        </div>
+        <div class="share-milestones">
+          <span class="milestone" id="ms-3">3🎯</span>
+          <span class="milestone" id="ms-5">5⭐</span>
+          <span class="milestone" id="ms-10">10🏆</span>
+        </div>
+      </div>
+
+      <!-- Share Buttons -->
+      <div class="share-buttons">
+        <button class="btn-whatsapp" onclick="shareWhatsApp()">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.553 4.112 1.524 5.835L0 24l6.335-1.507A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.006-1.374l-.36-.214-3.727.887.916-3.618-.236-.373A9.818 9.818 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>
+          Share on WhatsApp
+        </button>
+        <button class="btn-copy-link" onclick="copyShareLink()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+          <span id="copy-btn-text">Copy Link</span>
+        </button>
+      </div>
+
+      <div class="share-ref-box">
+        <span class="share-ref-label">Your referral code</span>
+        <span class="share-ref-code" id="share-ref-code">—</span>
+      </div>
+
+      <div class="share-disclaimer">🔒 We track link opens to verify. Reward processed within 24hrs after 10 opens.</div>
+
+      <button class="share-close-btn" onclick="closeShareModal()">&times; Close</button>
+    </div>
+  </div>
+
   <!-- Main App -->
   <div class="container">
     <header class="site-header">
@@ -188,6 +236,17 @@
 
         <button onclick="resetCalculator()" class="btn-retry">
           <span>✦ Try Another Connection</span>
+        </button>
+
+        <button class="btn-share-earn" onclick="openShareModal()">
+          <span class="share-earn-left">
+            <span class="share-earn-icon">🎁</span>
+            <span class="share-earn-text">
+              <strong>Share &amp; Earn ₹100 Paytm Cash</strong>
+              <small>Share with 10 friends to unlock</small>
+            </span>
+          </span>
+          <span class="share-earn-arrow">→</span>
         </button>
       </div>
 

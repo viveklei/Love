@@ -16,8 +16,31 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const COLLECTION = 'matches';
+const db             = firebase.firestore();
+const COLLECTION     = 'matches';
+const SHARES_COL     = 'shares';
+
+// ─── Track referral opens on page load ───────────────────────────────────────
+(async function trackReferralOpen() {
+  const params = new URLSearchParams(window.location.search);
+  const ref    = params.get('ref');
+  if (!ref) return;
+
+  try {
+    const docRef = db.collection(SHARES_COL).doc(ref);
+    await docRef.update({
+      openCount:    firebase.firestore.FieldValue.increment(1),
+      lastOpenedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    // doc might not exist yet — silently ignore
+  }
+
+  // Clean URL so it doesn't show ?ref= to the user
+  const clean = window.location.pathname;
+  window.history.replaceState({}, document.title, clean);
+})();
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -564,4 +587,113 @@ window.displayResults = function(nameOne, nameTwo, score, verdict) {
     }
   }, 1000 / 60);
 };
+
+// ─── Share & Earn System ──────────────────────────────────────────────────────
+
+let currentShareId    = null;
+let sharePollingTimer = null;
+const SHARE_GOAL = 10;
+const BASE_URL   = 'https://viveklei.github.io/Love/';
+
+function genShareId() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function buildShareLink(shareId) {
+  return `${BASE_URL}?ref=${shareId}`;
+}
+
+async function getOrCreateShareDoc(sharerName, score) {
+  const stored = sessionStorage.getItem('aura_share_id');
+  if (stored) { currentShareId = stored; return stored; }
+
+  const shareId = genShareId();
+  await db.collection(SHARES_COL).doc(shareId).set({
+    sharerName,
+    score,
+    openCount:    0,
+    createdAt:    firebase.firestore.FieldValue.serverTimestamp(),
+    lastOpenedAt: null
+  });
+
+  sessionStorage.setItem('aura_share_id', shareId);
+  currentShareId = shareId;
+  return shareId;
+}
+
+async function openShareModal() {
+  const nameOne = document.getElementById('res-name-one').textContent;
+  const score   = parseInt(document.getElementById('percentage-val').textContent);
+
+  document.getElementById('share-overlay').classList.add('open');
+  document.getElementById('share-ref-code').textContent     = '...';
+  document.getElementById('copy-btn-text').textContent      = 'Copy Link';
+  document.querySelector('.btn-copy-link').classList.remove('copied');
+
+  const shareId = await getOrCreateShareDoc(nameOne, score);
+  document.getElementById('share-ref-code').textContent = shareId;
+
+  await refreshShareProgress(shareId);
+
+  clearInterval(sharePollingTimer);
+  sharePollingTimer = setInterval(() => refreshShareProgress(shareId), 5000);
+}
+
+async function refreshShareProgress(shareId) {
+  try {
+    const doc   = await db.collection(SHARES_COL).doc(shareId).get();
+    if (!doc.exists) return;
+
+    const count = doc.data().openCount || 0;
+    const pct   = Math.min(Math.round((count / SHARE_GOAL) * 100), 100);
+
+    document.getElementById('share-count-text').textContent   = count >= SHARE_GOAL
+      ? '🎉 Reward Unlocked! 10/10' : `${count} / ${SHARE_GOAL} friends opened`;
+    document.getElementById('share-pct-text').textContent     = `${pct}%`;
+    document.getElementById('share-progress-fill').style.width = `${pct}%`;
+
+    ['3','5','10'].forEach(n => {
+      const el = document.getElementById(`ms-${n}`);
+      if (el) el.classList.toggle('reached', count >= parseInt(n));
+    });
+  } catch (e) {}
+}
+
+function closeShareModal(e) {
+  if (e && e.target !== document.getElementById('share-overlay')) return;
+  _closeShare();
+}
+
+function _closeShare() {
+  document.getElementById('share-overlay').classList.remove('open');
+  clearInterval(sharePollingTimer);
+}
+
+function shareWhatsApp() {
+  if (!currentShareId) return;
+  const nameOne = document.getElementById('res-name-one').textContent;
+  const nameTwo = document.getElementById('res-name-two').textContent;
+  const score   = document.getElementById('percentage-val').textContent;
+  const link    = buildShareLink(currentShareId);
+  const msg     = encodeURIComponent(
+    `💖 I just checked my love compatibility!\n` +
+    `${nameOne} & ${nameTwo} = ${score} match!\n\n` +
+    `✨ Check yours here:\n${link}`
+  );
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+function copyShareLink() {
+  if (!currentShareId) return;
+  const link = buildShareLink(currentShareId);
+  navigator.clipboard.writeText(link).then(() => {
+    const btn  = document.querySelector('.btn-copy-link');
+    const text = document.getElementById('copy-btn-text');
+    text.textContent = 'Copied! ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { text.textContent = 'Copy Link'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+
 
